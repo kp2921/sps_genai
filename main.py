@@ -1,7 +1,7 @@
-from fastapi import FastAPI
+def main():
+    print("Hello from sps-genai!")
 
-app = FastAPI()
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello, FastAPI with UV!"}
+if __name__ == "__main__":
+        main()
+    
