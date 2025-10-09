@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import os
 
 class SimpleCNN(nn.Module):
     def __init__(self):
@@ -19,3 +20,19 @@ class SimpleCNN(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
+
+# Helper function: load the trained model
+def load_model(checkpoint_path, device='cpu'):
+    """
+    Load a trained SimpleCNN model from a checkpoint file.
+    """
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
+
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    model = SimpleCNN()
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.to(device)
+    model.eval()
+    print(f"Loaded model from: {checkpoint_path}")
+    return model

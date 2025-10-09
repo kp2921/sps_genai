@@ -1,5 +1,5 @@
 from typing import Union
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 from app.bigram_model import BigramModel
 from app.embeddings import (
@@ -8,6 +8,10 @@ from app.embeddings import (
     linear_algebra_similarity,
 )
 import numpy as np
+import torch
+from torchvision import transforms
+from PIL import Image
+from helper_lib.model import load_model
 
 app = FastAPI()
 
@@ -78,4 +82,30 @@ def get_la_similarity(req: LASimilarityRequest):
 #    samples = np.random.normal(mean, std_dev, size)
 #    return samples.tolist()
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
+# Load the trained model (make sure path exists)
+model = load_model("checkpoint/best/model_epoch_005.pth", device)
+
+CLASSES = [
+    "airplane", "automobile", "bird", "cat", "deer",
+    "dog", "frog", "horse", "ship", "truck"
+]
+
+transform = transforms.Compose([
+    transforms.Resize((64, 64)),
+    transforms.ToTensor(),
+])
+
+@app.post("/predict_cnn")
+async def predict_cnn(file: UploadFile = File(...)):
+    """Classify an uploaded image using the trained CNN."""
+    image = Image.open(file.file).convert("RGB")
+    img_tensor = transform(image).unsqueeze(0).to(device)
+
+    with torch.no_grad():
+        outputs = model(img_tensor)
+        _, predicted = torch.max(outputs, 1)
+
+    predicted_class = CLASSES[predicted.item()]
+    return {"filename": file.filename, "prediction": predicted_class}
