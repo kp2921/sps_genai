@@ -1,6 +1,6 @@
 from helper_lib.model import SimpleCNN
 from helper_lib.data_loader import get_cifar10_loader
-from helper_lib.trainer import train_model
+from helper_lib.trainer import train_cnn
 from helper_lib.evaluator import evaluate_model
 from helper_lib.utils import get_device, ensure_dir, set_seed
 import torch.nn as nn
@@ -28,7 +28,7 @@ optimizer = optim.Adam(model.parameters(), lr=0.0005)
 # -------------------------------
 # Train the model
 # -------------------------------
-trained_model = train_model(
+trained_model = train_cnn(
     model=model,
     train_loader=train_loader,
     val_loader=test_loader,
