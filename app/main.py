@@ -15,8 +15,11 @@ from app.embeddings import (
 )
 from app.predict_cnn import predict_cnn
 from app.predict_gan import generate_gan_image
+from app.predict_ebm import router as ebm_router
+from app.predict_diffusion import router as diffusion_router
 
 app = FastAPI()
+
 
 # Sample corpus for the bigram model
 corpus = [
@@ -97,3 +100,9 @@ async def generate_gan(num_images: int = 1):
     Generate synthetic images using the trained GAN model.
     """
     return await generate_gan_image(num_images)
+
+# EBM Endpoint
+app.include_router(ebm_router, prefix="/ebm")
+
+# Diffusion Endpoint
+app.include_router(diffusion_router, prefix="/diffusion")
