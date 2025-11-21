@@ -17,6 +17,9 @@ from app.predict_cnn import predict_cnn
 from app.predict_gan import generate_gan_image
 from app.predict_ebm import router as ebm_router
 from app.predict_diffusion import router as diffusion_router
+from app.predict_rnn import load_or_train_rnn_model, generate_rnn_text
+from app.predict_llm import load_or_train_llm_model, generate_llm_text, FORMAT_PREFIX, FORMAT_SUFFIX
+
 
 app = FastAPI()
 
@@ -31,6 +34,12 @@ It tells the story of Edmond Dantès, who is falsely imprisoned and later seeks 
 ]
 
 bigram_model = BigramModel(corpus)
+
+# RNN (LSTM) language model - Module 6 with checkpoints
+rnn_device, rnn_model, rnn_vocab, rnn_inv_vocab = load_or_train_rnn_model()
+
+# Fine-tuned GPT-2 LLM - Module 9 activity
+llm_device, llm_model, llm_tokenizer = load_or_train_llm_model()
 
 class TextGenerationRequest(BaseModel):
     start_word: str
@@ -57,6 +66,55 @@ def read_root():
 def generate_text(request: TextGenerationRequest):
     generated_text = bigram_model.generate_text(request.start_word, request.length)
     return {"generated_text": generated_text}
+
+@app.post("/generate_with_rnn")
+def generate_with_rnn(request: TextGenerationRequest):
+    """
+    RNN-based (LSTM) text generation using the Module 6 architecture
+    trained on 'The Count of Monte Cristo'.
+    """
+    generated_text = generate_rnn_text(
+        model=rnn_model,
+        vocab=rnn_vocab,
+        inv_vocab=rnn_inv_vocab,
+        seed_text=request.start_word,
+        length=request.length,
+        temperature=1.0,   
+        dev=rnn_device,
+    )
+    return {"generated_text": generated_text}
+
+@app.post("/generate_with_llm")
+def generate_with_llm(request: TextGenerationRequest):
+    """
+    Text generation using the fine-tuned GPT-2 model on SQuAD.
+
+    The *final output format* is:
+      "That is a great question ... let me know if you have any other questions"
+    """
+    prompt = request.start_word
+
+    # Raw model output (QA-style)
+    raw = generate_llm_text(
+        model=llm_model,
+        tokenizer=llm_tokenizer,
+        prompt=prompt,
+        max_new_tokens=request.length,
+        temperature=0.8,
+        top_p=0.9,
+        dev=llm_device,
+        raw_only=True,
+    )
+
+    # Enforce exact prefix & suffix required by the assignment
+    formatted = (
+        f"{FORMAT_PREFIX}, "
+        + raw
+        + f" {FORMAT_SUFFIX}"
+    )
+
+    return {"generated_text": formatted}
+
 
 @app.post("/embedding")
 def get_embedding(req: EmbeddingRequest):
